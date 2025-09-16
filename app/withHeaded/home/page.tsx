@@ -1,7 +1,7 @@
 import { VehicleStatsTable } from "@/components/dashboard/vehicle-stats-table"
 import { WarningVehiclesTable } from "@/components/dashboard/warning-vehicles-table"
 import { ChinaMap } from "@/components/dashboard/china-map"
-import { VehicleDistributionChart } from "@/components/dashboard/vehicle-distribution-chart"
+import { ThreeDDonutChart } from "@/components/dashboard/vehicle-distribution-chart"
 import { VehicleStatsDetailChart } from "@/components/dashboard/vehicle-stats-detail-chart"
 import { WarningTrendChart } from "@/components/dashboard/warning-trend-chart"
 import { RegionalDataChart } from "@/components/dashboard/regional-data-chart"
@@ -31,7 +31,7 @@ export default function HomePage() {
           {/* Right column - Charts */}
           <div className="col-span-3 flex flex-col gap-4 min-h-0">
             <div className="flex-1 min-h-0">
-              <VehicleDistributionChart />
+              <ThreeDDonutChart />
             </div>
             <div className="flex-1 min-h-0">
               <VehicleStatsDetailChart />
