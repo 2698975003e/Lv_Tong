@@ -1,5 +1,5 @@
 "use client"
-import { ImageBgButton } from "./ui/image-bg-button"
+import { ImageBgButton } from "./image-bg-button"
 
 export function SiteHeader() {
   return (

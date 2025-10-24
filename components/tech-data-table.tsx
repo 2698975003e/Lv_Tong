@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
-import { ImageBgButton } from "@/components/ui/image-bg-button"
+import { ImageBgButton } from "@/components/image-bg-button"
 
 interface TableColumn {
   key: string
@@ -17,18 +17,31 @@ interface TableConfig {
   rowHeight?: string
   columns: TableColumn[]
   data: TableRow[]
+  showPagination?: boolean  // 新增：是否显示分页器
 }
 
 interface TableRow {
   id: string
-  licensePlate: string
-  vehicleType: string
-  trafficCount: number
-  totalDiscount: string
-  mainRoute: string
-  jumpDetails: string
-  discountDetails: string
-  cargoDetails: string
+  exStationName?: string
+  checkTime?: string
+  vehicleId?: string
+  vehicleTypeName?: string
+  freightName?: string
+  discountAmount?: string
+  enStationName?: string
+  checkResult?: string
+  inspectionModifyCount?: string
+  details?: string
+  originalId?: number
+  // 保留原有字段以兼容
+  licensePlate?: string
+  vehicleType?: string
+  trafficCount?: number
+  totalDiscount?: string
+  mainRoute?: string
+  jumpDetails?: string
+  discountDetails?: string
+  cargoDetails?: string
 }
 
 interface TechDataTableProps {
@@ -42,6 +55,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
     width: "100%",
     height: "auto",
     rowHeight: "48px",
+    showPagination: true,  // 默认显示分页器
     columns: [
       { key: "id", label: "序号", width: "80px", align: "center" },
       { key: "licensePlate", label: "车牌", width: "120px", align: "center" },
@@ -137,13 +151,17 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
         </div>
       </div>
 
-      {/* Table Body */}
-      <div className="divide-y divide-slate-700/30">
+      {/* Table Body - 根据showPagination决定是否使用滚动 */}
+      <div 
+        className={`divide-y divide-slate-700/30 ${
+          !finalConfig.showPagination ? 'max-h-[500px] overflow-y-auto custom-scrollbar' : ''
+        }`}
+      >
         {data.map((row, index) => (
           <div
             key={row.id}
             className={`flex px-4 py-3 text-sm transition-colors hover:bg-slate-700/30 ${
-              index % 2 === 0 ? "bg-slate-800/20" : "bg-slate-800/40"
+              index % 2 === 0 ? "bg-slate-800/10" : "bg-slate-800/70"
             }`}
             style={rowStyle}
           >
@@ -158,10 +176,20 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
                   maxWidth: column.width,
                 }}
               >
-                {column.key === 'jumpDetails' || column.key === 'cargoDetails' ? (
+                {column.key === 'jumpDetails' || column.key === 'cargoDetails' || column.key === 'details' ? (
                   <button className="text-blue-400 hover:text-blue-300 transition-colors">
                     {row[column.key as keyof TableRow] as string}
                   </button>
+                ) : column.key === 'checkResult' ? (
+                  <div className="flex justify-center">
+                    {row[column.key as keyof TableRow] === "✓" ? (
+                      <div className="inline-flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-300">{row[column.key as keyof TableRow] as string}</span>
+                    )}
+                  </div>
                 ) : column.key === 'mainRoute' ? (
                   <div className="truncate">{row[column.key as keyof TableRow] as string}</div>
                 ) : (
@@ -173,83 +201,85 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
         ))}
       </div>
 
-      {/* Pagination */}
-      <div className="bg-slate-800/80 border-t border-slate-700/50 px-4 py-3">
-        <div className="flex items-center justify-center space-x-3">
-          <ImageBgButton
-            bgSrc="/assets/shortBtn.png"
-            text="首页"
-            width="88px"
-            height="44px"
-            stretch="cover"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(1)}
-          />
-          <ImageBgButton
-            bgSrc="/assets/longBtn.png"
-            text="上一页"
-            width="107px"
-            height="44px"
-            stretch="cover"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          />
+      {/* Pagination - 条件渲染 */}
+      {finalConfig.showPagination && (
+        <div className="bg-slate-800/80 border-t border-slate-700/50 px-4 py-3">
+          <div className="flex items-center justify-center space-x-3">
+            <ImageBgButton
+              bgSrc="/assets/shortBtn.png"
+              text="首页"
+              width="88px"
+              height="44px"
+              stretch="cover"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+            />
+            <ImageBgButton
+              bgSrc="/assets/longBtn.png"
+              text="上一页"
+              width="107px"
+              height="44px"
+              stretch="cover"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            />
 
-          <ImageBgButton
-            bgSrc="/assets/longBtn.png"
-            text={`${currentPage}/${totalPages}`}
-            width="107px"
-            height="44px"
-            stretch="cover"
-            disabled
-          />
+            <ImageBgButton
+              bgSrc="/assets/longBtn.png"
+              text={`${currentPage}/${totalPages}`}
+              width="107px"
+              height="44px"
+              stretch="cover"
+              disabled
+            />
 
-          <ImageBgButton
-            bgSrc="/assets/longBtn.png"
-            text="下一页"
-            width="107px"
-            height="44px"
-            stretch="cover"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-          />
-          <ImageBgButton
-            bgSrc="/assets/shortBtn.png"
-            text="尾页"
-            width="88px"
-            height="44px"
-            stretch="cover"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(totalPages)}
-          />
+            <ImageBgButton
+              bgSrc="/assets/longBtn.png"
+              text="下一页"
+              width="107px"
+              height="44px"
+              stretch="cover"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            />
+            <ImageBgButton
+              bgSrc="/assets/shortBtn.png"
+              text="尾页"
+              width="88px"
+              height="44px"
+              stretch="cover"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+            />
 
-          {/* Jump to page input */}
-          <div className="flex items-center ml-4">
-            <div className="flex border-2 border-cyan-400/80 rounded-full shadow-lg shadow-cyan-400/20 overflow-hidden">
-              <Input
-                placeholder="请输入页码"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                className="w-32 h-11 bg-slate-900/80 border-0 text-cyan-300 placeholder:text-cyan-500/60 focus:ring-0 focus:outline-none rounded-none text-sm px-4"
-              />
-              <ImageBgButton
-                bgSrc="/assets/shortBtn.png"
-                text="跳转"
-                width="88px"
-                height="44px"
-                stretch="cover"
-                onClick={() => {
-                  const page = Number.parseInt(searchValue)
-                  if (page >= 1 && page <= totalPages) {
-                    setCurrentPage(page)
-                    setSearchValue("")
-                  }
-                }}
-              />
+            {/* Jump to page input */}
+            <div className="flex items-center ml-4">
+              <div className="flex border-2 border-cyan-400/80 rounded-full shadow-lg shadow-cyan-400/20 overflow-hidden">
+                <Input
+                  placeholder="请输入页码"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="w-32 h-11 bg-slate-900/80 border-0 text-cyan-300 placeholder:text-cyan-500/60 focus:ring-0 focus:outline-none rounded-none text-sm px-4"
+                />
+                <ImageBgButton
+                  bgSrc="/assets/shortBtn.png"
+                  text="跳转"
+                  width="88px"
+                  height="44px"
+                  stretch="cover"
+                  onClick={() => {
+                    const page = Number.parseInt(searchValue)
+                    if (page >= 1 && page <= totalPages) {
+                      setCurrentPage(page)
+                      setSearchValue("")
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

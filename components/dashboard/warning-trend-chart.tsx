@@ -1,11 +1,43 @@
 "use client"
 
-const data = [
-  0, 450, 370, 460, 380, 440, 300, 360, 330, 450, 380, 490, 410, 320, 430, 500,
-  460, 410, 470, 520, 470, 390, 440, 500, 580,
-]
+// const data = [
+//   5, 12, 18, 25, 35, 45, 48, 42, 38, 46, 40, 49, 41, 32, 43, 50,
+//   8, 15, 22, 28, 35, 42, 38, 45
+// ]
 
-export function WarningTrendChart() {
+// 转换函数：将API数据转换为ChartData格式
+function transformApiDataToChartData(apiData: {
+  statisticsDate: string
+  generatedAt: string
+  currentHour: number
+  totalInspectionCount: number
+  hourlyStats: Array<{
+    hour: string
+    inspectionCount: number
+  }>
+}): number[] {
+  // 直接从hourlyStats中提取inspectionCount数组
+  return apiData.hourlyStats.map(item => item.inspectionCount)
+}
+
+// 定义 WarningTrendChartProps 类型
+type WarningTrendChartProps = {
+  apiData: {
+    statisticsDate: string
+    generatedAt: string
+    currentHour: number
+    totalInspectionCount: number
+    hourlyStats: Array<{
+      hour: string
+      inspectionCount: number
+    }>
+  }
+}
+
+export function WarningTrendChart({ apiData }: WarningTrendChartProps) {
+  
+  const data = transformApiDataToChartData(apiData)
+  console.log(data)
   // 画布与内边距
   const W = 900, H = 260
   const pad = { l: 42, r: 12, t: 12, b: 36 }
@@ -13,8 +45,8 @@ export function WarningTrendChart() {
   const ih = H - pad.t - pad.b
 
   // Y 轴范围（0~600 比较接近截图）
-  const yMax = 600
-  const yTicks = [0, 100, 200, 300, 400, 500]
+  const yMax = 50
+  const yTicks = [0, 10, 20, 30, 40, 50]
   const xTicks = Array.from({ length: 25 }, (_, i) => i)
 
   const xScale = (i: number) => pad.l + (i / (data.length - 1)) * iw

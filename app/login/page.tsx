@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import Link from "next/link"
-import { ImageBgButton } from "@/components/ui/image-bg-button"
+import { ImageBgButton } from "@/components/image-bg-button"
 
 export default function LoginPage() {
   const router = useRouter()

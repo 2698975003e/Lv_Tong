@@ -1,7 +1,7 @@
 "use client"
 
 import { TechDataTable } from "@/components/tech-data-table"
-import { ImageBgButton } from "@/components/ui/image-bg-button"
+import { ImageBgButton } from "@/components/image-bg-button"
 
 export default function Home() {
   // 示例配置

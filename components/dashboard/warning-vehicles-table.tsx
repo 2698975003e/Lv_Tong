@@ -4,21 +4,56 @@ interface ChartData {
   percentage: number
 }
 
-const chartData: ChartData[] = [
-  { plate: "冀L.UFK9O", value: 50, percentage: 100 },
-  { plate: "贵A.PG342", value: 43, percentage: 86 },
-  { plate: "贵D.W1953", value: 40, percentage: 80 },
-  { plate: "鲁F.AEB97", value: 33, percentage: 66 },
-  { plate: "浙B.2223E", value: 28, percentage: 56 },
-  { plate: "辽E.2133E", value: 24, percentage: 48 },
-  { plate: "甘B.2223E", value: 20, percentage: 40 },
-  { plate: "鲁M.77632", value: 19, percentage: 38 },
-  { plate: "辽E.UFK9O", value: 18, percentage: 36 },
-  { plate: "贵D.AEB97", value: 16, percentage: 32 },
-]
+// 转换函数：将API数据转换为ChartData格式
+function transformApiDataToChartData(apiData: {
+  statisticsMonth: string
+  frequentVehicles: Array<{
+    vehicleId: string
+    passCount: number
+  }>
+}): ChartData[] {
+  const vehicles = apiData.frequentVehicles || []
+  
+  if (vehicles.length === 0) {
+    return []
+  }
 
+  // 找到最大的通行次数作为分母
+  const maxPassCount = Math.max(...vehicles.map(v => v.passCount))
+  
+  return vehicles.map(vehicle => ({
+    plate: vehicle.vehicleId,
+    value: vehicle.passCount,
+    percentage: Math.round((vehicle.passCount / maxPassCount) * 100)
+  }))
+}
 
-export function WarningVehiclesTable() {
+// const chartData: ChartData[] = [
+//   { plate: "冀L.UFK9O", value: 50, percentage: 100 },
+//   { plate: "贵A.PG342", value: 43, percentage: 86 },
+//   { plate: "贵D.W1953", value: 40, percentage: 80 },
+//   { plate: "鲁F.AEB97", value: 33, percentage: 66 },
+//   { plate: "浙B.2223E", value: 28, percentage: 56 },
+//   { plate: "辽E.2133E", value: 24, percentage: 48 },
+//   { plate: "甘B.2223E", value: 20, percentage: 40 },
+//   { plate: "鲁M.77632", value: 19, percentage: 38 },
+//   { plate: "辽E.UFK9O", value: 18, percentage: 36 },
+//   { plate: "贵D.AEB97", value: 16, percentage: 32 },
+// ]
+interface WarningVehiclesTableProps {
+  apiData: {
+    statisticsMonth: string
+    frequentVehicles: Array<{
+      vehicleId: string
+      passCount: number
+    }>
+  }
+}
+
+export function WarningVehiclesTable({ apiData }: WarningVehiclesTableProps) {
+  // 使用转换函数处理传入的API数据
+  const chartData = transformApiDataToChartData(apiData)
+
   return (
     <div className="bg-slate-800/50 border border-blue-500/30 rounded-lg  h-full">
       <div

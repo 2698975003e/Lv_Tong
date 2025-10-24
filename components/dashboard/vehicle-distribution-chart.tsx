@@ -1,191 +1,232 @@
 "use client"
 
-interface ChartData {
-  label: string
-  value: number
-  color: string
-  lightColor: string
+import Image from "next/image"
+
+// 定义传入数据的类型
+interface VehicleData {
+  statisticsDate: string;
+  generatedAt: string;
+  totalVehicleCount: number;
+  types: {
+    rank: number;
+    vehicleType: number;
+    vehicleTypeName: string;
+    count: number;
+    percentage: number;
+  }[];
 }
 
-const data: ChartData[] = [
-  { label: "一型车", value: 325, color: "#3B82F6", lightColor: "#60A5FA" },
-  { label: "二型车", value: 325, color: "#8B5CF6", lightColor: "#A78BFA" },
-  { label: "三型车", value: 325, color: "#10B981", lightColor: "#34D399" },
-  { label: "四型车", value: 325, color: "#F59E0B", lightColor: "#FBBF24" },
-  { label: "五型车", value: 325, color: "#EF4444", lightColor: "#F87171" },
-  { label: "六型车", value: 325, color: "#EC4899", lightColor: "#F472B6" },
-]
+// 定义vehicleTypes的类型
+interface VehicleType {
+  id: number;
+  name: string;
+  value: number;
+  percentage: string;
+  color: string;
+  startPoint: { x: number; y: number };
+  endPoint: { x: number; y: number };
+  textTransform: { x: number; y: number };
+}
 
-export function ThreeDDonutChart() {
-  const total = data.reduce((sum, item) => sum + item.value, 0)
-  let currentAngle = 0
+// 预定义的颜色数组
+const colors = ["#10B981", "#8B5CF6", "#F59E0B", "#EF4444", "#F97316", "#06B6D4"];
 
-  const createPath = (startAngle: number, endAngle: number, innerRadius: number, outerRadius: number) => {
-    const start = polarToCartesian(0, 0, outerRadius, endAngle)
-    const end = polarToCartesian(0, 0, outerRadius, startAngle)
-    const innerStart = polarToCartesian(0, 0, innerRadius, endAngle)
-    const innerEnd = polarToCartesian(0, 0, innerRadius, startAngle)
+// 预定义的布局配置
+const layoutConfig = [
+  { startPoint: { x: 32, y: 40 }, endPoint: { x: 15, y: 40 }, textTransform: { x: -5, y: 0 } },      // 饼图顶部边缘
+  { startPoint: { x: 65, y: 25 }, endPoint: { x: 80, y: 10 }, textTransform: { x: 5, y: -5 } },      // 饼图右上边缘
+  { startPoint: { x: 70, y: 40 }, endPoint: { x: 85, y: 40 }, textTransform: { x: 5, y: 0 } },       // 饼图右侧边缘
+  { startPoint: { x: 65, y: 60 }, endPoint: { x: 85, y: 80 }, textTransform: { x: 5, y: 5 } },       // 饼图底部边缘
+  { startPoint: { x: 50, y: 70 }, endPoint: { x: 30, y: 80 }, textTransform: { x: 0, y: 5 } },       // 饼图左下边缘
+  { startPoint: { x: 40, y: 20 }, endPoint: { x: 30, y: 10 }, textTransform: { x: -5, y: -5 } },     // 饼图左侧边缘
+];
 
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1"
-
-    return [
-      "M",
-      start.x,
-      start.y,
-      "A",
-      outerRadius,
-      outerRadius,
-      0,
-      largeArcFlag,
-      0,
-      end.x,
-      end.y,
-      "L",
-      innerEnd.x,
-      innerEnd.y,
-      "A",
-      innerRadius,
-      innerRadius,
-      0,
-      largeArcFlag,
-      1,
-      innerStart.x,
-      innerStart.y,
-      "Z",
-    ].join(" ")
-  }
-
-  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0
+// 转换函数
+function transformVehicleData(data: VehicleData): VehicleType[] {
+  return data.types.map((type, index) => {
+    const config = layoutConfig[index] || layoutConfig[0]; // 如果超出配置数量，使用第一个配置
+    const color = colors[index] || colors[0]; // 如果超出颜色数量，使用第一个颜色
+    
     return {
-      x: centerX + radius * Math.cos(angleInRadians),
-      y: centerY + radius * Math.sin(angleInRadians),
-    }
-  }
+      id: type.vehicleType,
+      name: type.vehicleTypeName,
+      value: type.count,
+      percentage: `${type.percentage.toFixed(1)}%`,
+      color: color,
+      startPoint: config.startPoint,
+      endPoint: config.endPoint,
+      textTransform: config.textTransform
+    };
+  });
+}
 
-  const getTextPosition = (angle: number, radius: number) => {
-    const radian = ((angle - 90) * Math.PI) / 180
-    return {
-      x: radius * Math.cos(radian),
-      y: radius * Math.sin(radian),
-    }
-  }
+export function ThreeDDonutChart({ data }: { data?: VehicleData }) {
+  
+  // 如果传入了data，使用转换函数；否则使用默认数据
+  const vehicleTypes = data ? transformVehicleData(data) : [
+    {
+      id: 1,
+      name: "一型车",
+      value: 111,
+      percentage: "10.5%",
+      color: "#10B981",
+      startPoint: { x: 32, y: 40 },
+      endPoint: { x: 15, y: 40 },
+      textTransform: { x: -5, y: 0 }
+    },
+    {
+      id: 2,
+      name: "二型车",
+      value: 222,
+      percentage: "10.5%",
+      color: "#8B5CF6",
+      startPoint: { x: 65, y: 25 },
+      endPoint: { x: 80, y: 10 },
+      textTransform: { x: 5, y: -5 }
+    },
+    {
+      id: 3,
+      name: "三型车",
+      value: 333,
+      percentage: "10.5%",
+      color: "#F59E0B",
+      startPoint: { x: 70, y: 40 },
+      endPoint: { x: 85, y: 40 },
+      textTransform: { x: 5, y: 0 }
+    },
+    {
+      id: 4,
+      name: "四型车",
+      value: 444,
+      color: "#EF4444",
+      startPoint: { x: 65, y: 60 },
+      endPoint: { x: 85, y: 80 },
+      textTransform: { x: 5, y: 5 }
+    },
+    {
+      id: 5,
+      name: "五型车",
+      value: 555,
+      color: "#F97316",
+      startPoint: { x: 50, y: 70 },
+      endPoint: { x: 30, y: 80 },
+      textTransform: { x: 0, y: 5 }
+    },
+    {
+      id: 6,
+      name: "六型车",
+      value: 666,
+      color: "#10B981",
+      startPoint: { x: 40, y: 20 },
+      endPoint: { x: 30, y: 10 },
+      textTransform: { x: -5, y: -5 }
+    },
+  ];
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800/50 border border-blue-500/30 rounded-lg p-4">
-      <style jsx>{`
-        .chart-text {
-          fill: #ffffff !important;
-          color: #ffffff !important;
-        }
-        svg text {
-          fill: #ffffff !important;
-          color: #ffffff !important;
-        }
-      `}</style>
-      <div className="relative w-full h-full">
-        {/* Main 3D Donut Chart */}
-        <svg width="100%" height="100%" viewBox="-250 -200 500 400" className="drop-shadow-2xl">
-          <defs>
-            {data.map((item, index) => (
-              <linearGradient key={index} id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={item.lightColor} />
-                <stop offset="100%" stopColor={item.color} />
-              </linearGradient>
-            ))}
-            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="10" stdDeviation="8" floodColor="#000000" floodOpacity="0.3" />
-            </filter>
-          </defs>
-
-          {/* Bottom shadow ellipse */}
-          <ellipse cx="0" cy="120" rx="140" ry="30" fill="rgba(0,0,0,0.2)" />
-
-          {/* 3D base segments */}
-          {data.map((item, index) => {
-            const percentage = item.value / total
-            const angle = percentage * 360
-            const startAngle = currentAngle
-            const endAngle = currentAngle + angle
-            const midAngle = startAngle + angle / 2
-
-            const path = createPath(startAngle, endAngle, 80, 140)
-            const bottomPath = createPath(startAngle, endAngle, 80, 140)
-
-            currentAngle += angle
-
-            return (
-              <g key={index}>
-                {/* Bottom 3D segment */}
-                <path d={bottomPath} fill={item.color} transform="translate(0, 20) scale(1, 0.3)" opacity="0.6" />
-                {/* Main segment */}
-                <path
-                  d={path}
-                  fill={`url(#gradient-${index})`}
-                  filter="url(#shadow)"
-                  className="hover:brightness-110 transition-all duration-300"
-                />
-              </g>
-            )
-          })}
-
-          {/* Value labels with dotted lines */}
-          {(() => {
-            let angle = 0
-            return data.map((item, index) => {
-              const percentage = item.value / total
-              const segmentAngle = percentage * 360
-              const midAngle = angle + segmentAngle / 2
-              angle += segmentAngle
-
-              const innerPos = getTextPosition(midAngle, 110)
-              const outerPos = getTextPosition(midAngle, 180)
-
-              return (
-                <g key={`label-${index}`}>
-                  {/* Dotted line */}
-                  <line
-                    x1={innerPos.x}
-                    y1={innerPos.y}
-                    x2={outerPos.x}
-                    y2={outerPos.y}
-                    stroke={item.color}
-                    strokeWidth="2"
-                    strokeDasharray="4,4"
-                    opacity="0.8"
-                  />
-                  {/* Value circle */}
-                  <circle cx={outerPos.x} cy={outerPos.y} r="4" fill={item.color} />
-                  {/* Value text */}
-                  <text
-                    x={outerPos.x + (outerPos.x > 0 ? 15 : -15)}
-                    y={outerPos.y + 5}
-                    fill="#FFFFFF"
-                    stroke="#FFFFFF"
-                    fontSize="18"
-                    fontWeight="bold"
-                    textAnchor={outerPos.x > 0 ? "start" : "end"}
-                    className="font-mono chart-text"
-                    style={{ fill: "#FFFFFF", color: "#FFFFFF" }}
-                  >
-                    {item.value}
-                  </text>
-                </g>
-              )
-            })
-          })()}
-        </svg>
-
-        {/* Bottom labels - keep inside container */}
-        <div className="absolute inset-x-0 bottom-2 flex justify-center gap-6">
-          {data.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="w-3.5 h-3.5 rounded-sm" style={{ backgroundColor: item.color }} />
-              <span className="text-white text-xs md:text-sm font-medium whitespace-nowrap">{item.label}</span>
-            </div>
-          ))}
+    <div className="relative w-full h-full bg-slate-800 rounded-lg p-0 flex flex-col">
+      {/* 头部图片 */}
+      <div 
+        className="relative w-full h-[36px] flex items-center justify-center"
+        style={{
+          backgroundImage: "url(/assets/Home_Right_1.png)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+      {/* 图表容器 */}
+      <div className="relative mt-10 h-[70%] flex items-start justify-center pt-4">
+        {/* 静态饼图图片 */}
+        <div className="relative mt-5 w-100 h-[70%]">
+          <Image
+            src="/assets/TuPian.png"
+            alt="3D Donut Chart"
+            fill
+            className="object-contain"
+          />
         </div>
+
+        {/* 连接线和标签 */}
+        {vehicleTypes.map((vehicle) => (
+          <div key={vehicle.id}>
+            {/* 连接线 */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ zIndex: 1 }}
+            >
+              <line
+                x1={`${vehicle.startPoint.x}%`}
+                y1={`${vehicle.startPoint.y}%`}
+                x2={`${vehicle.endPoint.x}%`}
+                y2={`${vehicle.endPoint.y}%`}
+                stroke={vehicle.color}
+                strokeWidth="2"
+                strokeDasharray="4,4"
+              />
+            </svg>
+
+            {/* 点 */}
+            <div
+              className="absolute flex items-center gap-2"
+              style={{
+                left: `${vehicle.endPoint.x}%`,
+                top: `${vehicle.endPoint.y}%`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2
+              }}
+            >
+              {/* 颜色指示器 - 点在前 */}
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: vehicle.color }}
+              />
+            </div>
+
+            {/* 数值文本 */}
+            <div
+              className="absolute text-sm font-medium text-center"
+              style={{
+                left: `${vehicle.endPoint.x + (vehicle.textTransform?.x || 0)}%`,
+                top: `${vehicle.endPoint.y + (vehicle.textTransform?.y || 0)}%`,
+                transform: 'translate(-50%, -50%)',
+                color: vehicle.color,
+                zIndex: 2
+              }}
+            >
+              {/* 第一行：型号 */}
+              <div className="text-[20px] leading-tight">
+                {vehicle.name}
+              </div>
+              {/* 第二行：数值 */}
+              <div className="text-[30px] font-bold leading-tight">
+                {vehicle.value}
+              </div>
+              {/* 第三行：百分比 */}
+              <div className="text-[18px] font-medium leading-tight">
+                {vehicle.percentage}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 图例 */}
+      <div className="flex flex-wrap gap-4 mt-1 justify-center">
+        {vehicleTypes.map((vehicle) => (
+          <div key={vehicle.id} className="flex items-center gap-2">
+            <div
+              className="w-3 h-1 rounded"
+              style={{ backgroundColor: vehicle.color }}
+            />
+            <span className="text-xl text-gray-300">
+              {vehicle.name}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
+
+

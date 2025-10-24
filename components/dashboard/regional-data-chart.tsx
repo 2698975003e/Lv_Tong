@@ -1,29 +1,49 @@
 'use client'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 
-const cityData = [
-  { city: "灵宝", liquidAmount: 70, transitCount: 45 },
-  { city: "灵武", liquidAmount: 85, transitCount: 60 },
-  { city: "寻甸", liquidAmount: 90, transitCount: 75 },
-  { city: "甲庄", liquidAmount: 75, transitCount: 50 },
-  { city: "隆林", liquidAmount: 65, transitCount: 40 },
-  { city: "珠山", liquidAmount: 20, transitCount: 15 },
-  { city: "商丘", liquidAmount: 55, transitCount: 35 },
-  { city: "明溪", liquidAmount: 80, transitCount: 55 },
-  { city: "郸城", liquidAmount: 70, transitCount: 45 },
-  { city: "新河", liquidAmount: 75, transitCount: 50 },
-  { city: "京山", liquidAmount: 80, transitCount: 60 },
-  { city: "明光", liquidAmount: 85, transitCount: 65 },
-  { city: "京山", liquidAmount: 90, transitCount: 70 },
-  { city: "甲庄", liquidAmount: 85, transitCount: 55 },
-  { city: "腾冲", liquidAmount: 70, transitCount: 45 },
-  { city: "珠山", liquidAmount: 90, transitCount: 75 },
-  { city: "南明", liquidAmount: 85, transitCount: 60 },
+// 定义传入数据的类型
+interface StationDiscountData {
+  statisticsDate: string;
+  totalStations: number;
+  stationDiscountStats: Array<{
+    stationName: string;
+    discountAmount: number;
+    vehicleCount: number;
+  }>;
+}
 
+interface RegionalDataApiResponse {
+  code: number;
+  message: string;
+  data: StationDiscountData;
+  timestamp: number;
+}
 
-]
+// 转换函数：将API数据转换为图表所需的格式
+function transformStationData(data: StationDiscountData) {
+  return data.stationDiscountStats.map(station => ({
+    city: station.stationName,
+    liquidAmount: station.discountAmount / 10000, // 转换为万元
+    transitCount: station.vehicleCount
+  }));
+}
 
-export function RegionalDataChart() {
+export function RegionalDataChart({ apiData }: { apiData?: RegionalDataApiResponse['data'] }) {
+  // 如果传入了数据，使用转换后的数据；否则使用默认数据
+  const chartData = apiData ? transformStationData(apiData) : [
+    { city: "灵宝", liquidAmount: 70, transitCount: 45 },
+    { city: "灵武", liquidAmount: 85, transitCount: 60 },
+    { city: "寻甸", liquidAmount: 90, transitCount: 75 },
+    { city: "甲庄", liquidAmount: 75, transitCount: 50 },
+    { city: "隆林", liquidAmount: 65, transitCount: 40 },
+    { city: "珠山", liquidAmount: 20, transitCount: 15 },
+    { city: "商丘", liquidAmount: 55, transitCount: 35 },
+  ];
+
+  // 计算Y轴的最大值，基于数据动态调整
+  const maxValue = Math.max(...chartData.map(item => Math.max(item.liquidAmount, item.transitCount)));
+  const yAxisMax = Math.ceil(maxValue / 20) * 20; // 向上取整到20的倍数
+
   return (
     <div className="bg-slate-800/50 border border-blue-500/30 rounded-lg p-4 h-full"
     style={{
@@ -38,7 +58,7 @@ export function RegionalDataChart() {
           <div className="absolute right-4 top-3 flex items-center gap-8 text-gray-300 text-sm">
             <div className="flex items-center gap-2">
               <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: '#06B6D4' }} />
-              <span>减免金额</span>
+              <span>减免金额(万元)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: '#F97316' }} />
@@ -47,7 +67,7 @@ export function RegionalDataChart() {
           </div>
           <ResponsiveContainer className="pt-7" width="100%" height="100%">
             <BarChart
-              data={cityData}
+              data={chartData}
               margin={{
                 top: 20,
                 right: 30,
@@ -71,10 +91,10 @@ export function RegionalDataChart() {
                 axisLine={true}
                 tickLine={true}
                 tick={{ fontSize: 18, fill: "#9CA3AF" }}
-                domain={[0,100]}
-                ticks={[0,20,40,60,80,100]}
+                domain={[0, yAxisMax]}
+                tickCount={6}
                 label={{
-                  value: "(万)",
+                  value: "(万元)",
                   angle: 0,
                   position: "top",
                   offset: 10,
