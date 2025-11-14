@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { StatisticsCategory } from "@/components/right_statistics_category"
 import { SearchPanel } from "@/components/search-panel"
 import { TechDataTable } from "@/components/tech-data-table"
+import { apiFetch } from "@/lib/api"
 
 // ===== 类型与转换函数 =====
 type ApiResp = {
@@ -157,33 +158,80 @@ export default function JianMianJinEPage() {
   const [stationConfigState, setStationConfigState] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // 添加查询参数状态
+  const [queryParams, setQueryParams] = useState<any>({
+    startDate: "2025-04-01",
+    endDate: "2025-04-01",
+    intervalSize: 1000
+  })
+
+  // 加载数据的函数
+  const loadData = async (params?: any) => {
+    const controller = new AbortController()
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // 构建查询参数
+      const searchParams = new URLSearchParams()
+      
+      // 如果有传入的查询参数，添加到 URL
+      const finalParams = params || queryParams
+      if (finalParams.startDate) searchParams.append("startDate", finalParams.startDate)
+      if (finalParams.endDate) searchParams.append("endDate", finalParams.endDate)
+      if (finalParams.minDiscountAmount) searchParams.append("minDiscountAmount", finalParams.minDiscountAmount)
+      if (finalParams.maxDiscountAmount) searchParams.append("maxDiscountAmount", finalParams.maxDiscountAmount)
+      if (finalParams.enStationName) searchParams.append("enStationName", finalParams.enStationName)
+      if (finalParams.exStationName) searchParams.append("exStationName", finalParams.exStationName)
+      if (finalParams.freightCategory) searchParams.append("freightCategory", finalParams.freightCategory)
+      if (finalParams.vehicleType) searchParams.append("vehicleType", finalParams.vehicleType)
+      if (finalParams.vehicleId) searchParams.append("vehicleId", finalParams.vehicleId)
+      if (finalParams.passType) searchParams.append("passType", finalParams.passType)
+      if (finalParams.passMode) searchParams.append("passMode", finalParams.passMode)
+      if (finalParams.isModified) searchParams.append("isModified", finalParams.isModified)
+      if (finalParams.intervalSize) searchParams.append("intervalSize", finalParams.intervalSize)
+      
+      const res = await apiFetch(
+        `/api/discount/statistics?${searchParams.toString()}`,
+        { signal: controller.signal }
+      )
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json: ApiResp = await res.json()
+      if (json?.code !== 200) throw new Error((json as any)?.message || "接口返回错误")
+
+      const { branchConfig, stationConfig } = transformToConfigs(json)
+      setBranchConfigState(branchConfig)
+      setStationConfigState(stationConfig)
+    } catch (e: any) {
+      if (e.name !== "AbortError") setError(e.message || "加载失败")
+    } finally {
+      setLoading(false)
+    }
+    
+    return () => controller.abort()
+  }
 
   useEffect(() => {
-    const controller = new AbortController()
-    async function load() {
-      try {
-        setLoading(true)
-        setError(null)
-        const res = await fetch(
-          "http://116.57.120.171:8081/api/discount/statistics?test=scutgreenpass",
-          { signal: controller.signal }
-        )
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const json: ApiResp = await res.json()
-        if (json?.code !== 200) throw new Error((json as any)?.message || "接口返回错误")
-
-        const { branchConfig, stationConfig } = transformToConfigs(json)
-        setBranchConfigState(branchConfig)
-        setStationConfigState(stationConfig)
-      } catch (e: any) {
-        if (e.name !== "AbortError") setError(e.message || "加载失败")
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-    return () => controller.abort()
+    loadData()
   }, [])
+
+  // 处理查询
+  const handleSearch = (params: any) => {
+    setQueryParams(params)
+    loadData(params)
+  }
+
+  // 处理重置
+  const handleReset = () => {
+    const defaultParams = {
+      startDate: "2025-04-01",
+      endDate: "2025-04-01",
+      intervalSize: 1000
+    }
+    setQueryParams(defaultParams)
+    loadData(defaultParams)
+  }
 
   return (
     <div className="h-[calc(100vh-100px)] bg-slate-900 p-4 flex flex-col">
@@ -217,7 +265,7 @@ export default function JianMianJinEPage() {
         {/* 右侧列 */}
         <div className="bg-slate-800/50 border border-blue-500/30 rounded-lg p-0">
           <StatisticsCategory />
-          <SearchPanel />
+          <SearchPanel onSearch={handleSearch} onReset={handleReset} />
         </div>
       </div>
     </div>

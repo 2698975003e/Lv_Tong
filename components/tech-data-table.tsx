@@ -9,6 +9,7 @@ interface TableColumn {
   label: string
   width?: string
   align?: 'left' | 'center' | 'right'
+  onClick?: (row: TableRow, rowIndex: number) => void // 添加点击回调
 }
 
 interface TableConfig {
@@ -17,7 +18,15 @@ interface TableConfig {
   rowHeight?: string
   columns: TableColumn[]
   data: TableRow[]
-  showPagination?: boolean  // 新增：是否显示分页器
+  showPagination?: boolean
+  pagination?: {
+    currentPage?: number
+    totalPages?: number
+    pageSize?: number
+    total?: number
+    onPageChange?: (page: number) => void
+  }
+  headerBgSrc?: string  // 新增：表头背景图
 }
 
 interface TableRow {
@@ -39,9 +48,12 @@ interface TableRow {
   trafficCount?: number
   totalDiscount?: string
   mainRoute?: string
+  mainRouteDetail?: string
   jumpDetails?: string
   discountDetails?: string
   cargoDetails?: string
+  cargoDetail?: string
+  mainCategory?: string
 }
 
 interface TechDataTableProps {
@@ -67,16 +79,28 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
       { key: "discountDetails", label: "主要减免次数详情", width: "180px", align: "center" },
       { key: "cargoDetails", label: "货物详情", width: "100px", align: "center" },
     ],
-    data: []
+    data: [],
+    headerBgSrc: "/assets/Table_Header.png", // 新增默认值
   }
 
   // 合并配置
   const finalConfig = { ...defaultConfig, ...config }
   
   const [data, setData] = useState<TableRow[]>(finalConfig.data)
-  const [currentPage, setCurrentPage] = useState(3)
+  const [currentPage, setCurrentPage] = useState(
+    finalConfig.pagination?.currentPage || 3
+  )
   const [searchValue, setSearchValue] = useState("")
-  const totalPages = 10
+  const totalPages = finalConfig.pagination?.totalPages || 10
+  
+  // 处理分页变化
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // 调用外部传入的回调
+    if (finalConfig.pagination?.onPageChange) {
+      finalConfig.pagination.onPageChange(page)
+    }
+  }
 
   useEffect(() => {
     // 如果配置中没有数据，则生成默认数据
@@ -123,13 +147,14 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
     }}></div>
       
       {/* Table Header */}
-      <div className="bg-transparent border-b border-slate-700/50"
-            style={{
-              backgroundImage: 'url(/assets/Table_Header.png)',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat'
-            }}>
+      <div
+        className="w-full h-12 flex items-center px-4 rounded-t-md"
+        style={{
+          backgroundImage: `url(${finalConfig.headerBgSrc || "/assets/Table_Header.png"})`,
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <div 
           className="flex px-4 py-3 text-sm font-medium text-slate-300"
           style={rowStyle}
@@ -176,8 +201,15 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
                   maxWidth: column.width,
                 }}
               >
-                {column.key === 'jumpDetails' || column.key === 'cargoDetails' || column.key === 'details' ? (
-                  <button className="text-blue-400 hover:text-blue-300 transition-colors">
+                {column.key === 'jumpDetails' || column.key === 'cargoDetails' || column.key === 'cargoDetail' || column.key === 'details' || column.key === 'mainRouteDetail' ? (
+                  <button 
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                    onClick={() => {
+                      if (column.onClick) {
+                        column.onClick(row, index)
+                      }
+                    }}
+                  >
                     {row[column.key as keyof TableRow] as string}
                   </button>
                 ) : column.key === 'checkResult' ? (
@@ -212,7 +244,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
               height="44px"
               stretch="cover"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage(1)}
+              onClick={() => handlePageChange(1)}
             />
             <ImageBgButton
               bgSrc="/assets/longBtn.png"
@@ -221,7 +253,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
               height="44px"
               stretch="cover"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
             />
 
             <ImageBgButton
@@ -240,7 +272,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
               height="44px"
               stretch="cover"
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
             />
             <ImageBgButton
               bgSrc="/assets/shortBtn.png"
@@ -249,7 +281,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
               height="44px"
               stretch="cover"
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(totalPages)}
+              onClick={() => handlePageChange(totalPages)}
             />
 
             {/* Jump to page input */}
@@ -270,7 +302,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
                   onClick={() => {
                     const page = Number.parseInt(searchValue)
                     if (page >= 1 && page <= totalPages) {
-                      setCurrentPage(page)
+                      handlePageChange(page)
                       setSearchValue("")
                     }
                   }}

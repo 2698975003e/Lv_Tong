@@ -4,16 +4,36 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import Link from "next/link"
 import { ImageBgButton } from "@/components/image-bg-button"
+import { login } from "@/lib/api"
 
 export default function LoginPage() {
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: 调用登录接口校验
-    router.push("/")
+    
+    if (!username || !password) {
+      setError("请输入用户名和密码")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await login(username, password)
+      // 登录成功，跳转到首页
+      router.push("/")
+    } catch (err) {
+      console.error('登录失败:', err)
+      setError(err instanceof Error ? err.message : '登录失败，请稍后重试')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -42,10 +62,16 @@ export default function LoginPage() {
             />
           </div>
 
+          {error && (
+            <div className="text-red-400 text-sm mt-2">
+              {error}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 pt-2">
             <ImageBgButton
               bgSrc="/assets/longBtn.png"
-              text="登录"
+              text={loading ? "登录中..." : "登录"}
               width="107px"
               height="44px"
               stretch="cover"

@@ -148,9 +148,16 @@ export default function HomePage() {
       }
     }
 
+    // 立即执行一次
     fetchVehicleStats()
+    
+    // 设置10秒定时器
+    const interval = setInterval(() => {
+      fetchVehicleStats()
+    }, 10000)
 
     return () => {
+      clearInterval(interval)
       controller.abort()
     }
   }, [])
@@ -195,8 +202,13 @@ export default function HomePage() {
     }
 
     fetchWarningVehicles()
+    
+    const interval = setInterval(() => {
+      fetchWarningVehicles()
+    }, 10000)
 
     return () => {
+      clearInterval(interval)
       controller.abort()
     }
   }, [])
@@ -236,13 +248,17 @@ export default function HomePage() {
     }
 
     fetchWarningTrend()
+    
+    const interval = setInterval(() => {
+      fetchWarningTrend()
+    }, 10000)
 
     return () => {
+      clearInterval(interval)
       controller.abort()
     }
   }, [])
 
-  // 获取车型分布数据的useEffect
   useEffect(() => {
     const controller = new AbortController()
     
@@ -283,13 +299,17 @@ export default function HomePage() {
     }
 
     fetchVehicleDistribution()
+    
+    const interval = setInterval(() => {
+      fetchVehicleDistribution()
+    }, 10000)
 
     return () => {
+      clearInterval(interval)
       controller.abort()
     }
   }, [])
 
-  // 新增：获取区域数据（站点减免统计）的useEffect
   useEffect(() => {
     const controller = new AbortController()
     
@@ -330,8 +350,13 @@ export default function HomePage() {
     }
 
     fetchRegionalData()
+    
+    const interval = setInterval(() => {
+      fetchRegionalData()
+    }, 10000)
 
     return () => {
+      clearInterval(interval)
       controller.abort()
     }
   }, [])
