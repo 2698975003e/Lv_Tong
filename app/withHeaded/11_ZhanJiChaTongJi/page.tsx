@@ -1,6 +1,6 @@
-"use client"
+ "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { TechDataTable } from "@/components/tech-data-table"
 import { SplitRowTable } from "@/components/split-row-table"
@@ -58,7 +58,7 @@ type AuditQueryFilters = {
   maxDiscountAmount?: number
 }
 
-export default function ZhanJiChaTongJiPage() {
+function ZhanJiChaTongJiContent() {
   // 2) 接口数据状态：仅先接入"表一（收费站查验统计）"，保持布局不变
   const [auditStatsData, setAuditStatsData] = useState<AuditStatisticsApiResponse['data'] | null>(null)
   const [auditStatsLoading, setAuditStatsLoading] = useState<boolean>(true)
@@ -248,7 +248,8 @@ export default function ZhanJiChaTongJiPage() {
     ],
     data: table1Rows,
     showPagination: false,
-    bodyMaxHeight: "300px",
+    bodyMaxHeight: "350px",
+    headerBgSrc: "/assets/Headers/header11_1.png",
   }
 
   // 第二个表格配置
@@ -275,12 +276,13 @@ export default function ZhanJiChaTongJiPage() {
         unauditedCount: { top: "-", bottom: "-" },
         qualifiedCount: { top: "-", bottom: "-" },
         unqualifiedCount: { top: "-", bottom: "-" },
-        avgAuditDuration: { top: "-", bottom: "-" },
+                avgAuditDuration: { top: "-", bottom: "-" },
         auditRatio: { top: "-", bottom: "-" },
       },
     ],
     showPagination: false,
     bodyMaxHeight: "350px",
+    headerBgSrc: "/assets/Headers/header11_2.png",
     splitFromColumn: 3  // 从第3列开始分裂
   }
 
@@ -291,7 +293,7 @@ export default function ZhanJiChaTongJiPage() {
         {/* 左侧列 - 上下两个表格 */}
         <div className="flex flex-col gap-4 min-h-0">
           {/* 上表格：收费站查验统计 */}
-          <div className="h-[50%] min-h-0">
+          <div className="h-[45%] min-h-0">
             {auditStatsLoading ? (
               <div className="h-full flex items-center justify-center text-slate-300">数据加载中...</div>
             ) : auditStatsError ? (
@@ -304,7 +306,7 @@ export default function ZhanJiChaTongJiPage() {
           </div>
 
           {/* 下表格：车型查验统计 - 使用分裂行表格 */}
-          <div className="h-[50%] min-h-0 mt-4">
+          <div className="h-[55%] min-h-0 mt-4">
             {auditStatsLoading ? (
               <div className="h-full flex items-center justify-center text-slate-300">数据加载中...</div>
             ) : auditStatsError ? (
@@ -321,5 +323,13 @@ export default function ZhanJiChaTongJiPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ZhanJiChaTongJiPage() {
+  return (
+    <Suspense fallback={<div className="text-slate-300 p-4">页面加载中...</div>}>
+      <ZhanJiChaTongJiContent />
+    </Suspense>
   )
 }

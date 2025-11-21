@@ -231,6 +231,7 @@ export default function ShiShiXinXiPage() {
 
   // 表格配置 - 添加 pagination 配置
   const tableConfig = {
+    headerBgSrc: "/assets/Headers/header3_1.png", // 自定义标题背景图（可选，不设置则使用默认的 TitleHeader.png）
     columns: [
       { key: "id", label: "序号", width: "100px", align: "center" as const },
       { key: "exStationName", label: "出口收费站", width: "150px", align: "center" as const },

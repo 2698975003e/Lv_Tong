@@ -179,6 +179,7 @@ export default function ChangPaoCheLiangPage() {
 
   // 表格配置
   const tableConfig = {
+    headerBgSrc: "/assets/Headers/header7.png",
     showPagination: true,
     columns: [
       { key: "id", label: "序号", width: "120px", align: "center" as const },

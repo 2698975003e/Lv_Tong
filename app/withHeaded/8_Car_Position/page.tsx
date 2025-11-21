@@ -39,8 +39,13 @@ export default function CarPositionPage() {
     intervalSize: "1000",
   })
 
-  const buildConfig = (titleCol: string, rows: Array<{ id: string; name: string; count: number }>) => {
+  const buildConfig = (
+    titleCol: string,
+    rows: Array<{ id: string; name: string; count: number }>,
+    headerBgSrc?: string
+  ) => {
     return {
+      headerBgSrc,
       showPagination: false,
       columns: [
         { key: "id", label: "序号", width: "200px", align: "center" },
@@ -79,8 +84,8 @@ export default function CarPositionPage() {
         count: x.vehicleCount,
       })) || []
 
-    setNationalConfig(buildConfig("车籍地", nationalRows))
-    setSdConfig(buildConfig("车籍地", sdRows))
+    setNationalConfig(buildConfig("车籍地", nationalRows, "/assets/Headers/header8_1.png"))
+    setSdConfig(buildConfig("车籍地", sdRows, "/assets/Headers/header8_2.png"))
   }
 
   const fetchData = async (override?: Partial<typeof queryParams>) => {

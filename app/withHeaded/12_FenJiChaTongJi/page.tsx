@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { TechDataTable } from "@/components/tech-data-table"
 import { SimpleSearchPanel } from "@/components/simple-search-panel"
@@ -42,7 +42,7 @@ interface AuditStatisticsApiResponse {
   timestamp?: number
 }
 
-export default function FenJiChaTongJiPage() {
+function FenJiChaTongJiContent() {
   const searchParams = useSearchParams()
   const [data, setData] = useState<AuditStatisticsApiResponse['data'] | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -173,5 +173,13 @@ export default function FenJiChaTongJiPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function FenJiChaTongJiPage() {
+  return (
+    <Suspense fallback={<div className="text-slate-300 p-4">页面加载中...</div>}>
+      <FenJiChaTongJiContent />
+    </Suspense>
   )
 }

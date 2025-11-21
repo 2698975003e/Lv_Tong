@@ -24,6 +24,7 @@ interface SplitRowTableConfig {
   data: SplitRowData[]
   showPagination?: boolean
   splitFromColumn?: number
+  headerBgSrc?: string
 }
 
 interface SplitRowTableProps {
@@ -39,7 +40,8 @@ export function SplitRowTable({ config, className = "" }: SplitRowTableProps) {
     showPagination: true,
     splitFromColumn: 3,
     columns: [],
-    data: []
+    data: [],
+    headerBgSrc: "/assets/TitleHeader.png",
   }
 
   const finalConfig = { ...defaultConfig, ...config }
@@ -71,7 +73,7 @@ export function SplitRowTable({ config, className = "" }: SplitRowTableProps) {
     >
       <div className="h-9"     
         style={{
-          backgroundImage: 'url(/assets/TitleHeader.png)',
+          backgroundImage: `url(${finalConfig.headerBgSrc || "/assets/TitleHeader.png"})`,
           backgroundSize: 'contain',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'

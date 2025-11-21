@@ -1,7 +1,40 @@
 "use client"
+import { useEffect, useState } from "react"
 import { ImageBgButton } from "./image-bg-button"
+import { tokenManager, USER_INFO_UPDATED_EVENT, UserInfo } from "@/lib/api"
 
 export function SiteHeader() {
+  const [userInfo, setUserInfo] = useState<Pick<UserInfo, "username" | "roleName">>({
+    username: "未登录",
+    roleName: "请登录后查看权限",
+  })
+
+  useEffect(() => {
+    const updateUserInfo = () => {
+      const info = tokenManager.getUserInfo()
+      if (info) {
+        setUserInfo({
+          username: info.username,
+          roleName: info.roleName,
+        })
+      } else {
+        setUserInfo({
+          username: "未登录",
+          roleName: "请登录后查看权限",
+        })
+      }
+    }
+
+    updateUserInfo()
+    window.addEventListener(USER_INFO_UPDATED_EVENT, updateUserInfo)
+    window.addEventListener("storage", updateUserInfo)
+
+    return () => {
+      window.removeEventListener(USER_INFO_UPDATED_EVENT, updateUserInfo)
+      window.removeEventListener("storage", updateUserInfo)
+    }
+  }, [])
+
   return (
     <div
       className="relative w-full h-[100px] flex items-center justify-between px-4"
@@ -19,10 +52,10 @@ export function SiteHeader() {
         </div>
         <div className="flex flex-col">
           <span className="text-base font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] bg-transparent px-2 py-1 rounded">
-            王运野
+            {userInfo.username}
           </span>
           <span className="text-sm text-white/95 leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] bg-transparent px-2 py-0.5 rounded mt-1">
-            青海省道路运输管理局稽查/分公司1分中心
+            {userInfo.roleName}
           </span>
         </div>
       </div>

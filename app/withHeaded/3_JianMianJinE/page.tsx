@@ -84,6 +84,7 @@ function transformToConfigs(api: ApiResp) {
   }
 
   const branchConfig = {
+    headerBgSrc: "/assets/Headers/header3_1.png", // 自定义标题背景图
     showPagination: false,
     columns: [
       { key: "category", label: `分公司姓名（${cname}）`, width: "150px", align: "center" },
@@ -102,6 +103,7 @@ function transformToConfigs(api: ApiResp) {
 
   const fmt = (amt?: number, cnt?: number) => `${(amt ?? 0).toFixed(2)}/${String(cnt ?? 0)}`
   const stationConfig = {
+    headerBgSrc: "/assets/Headers/header3_2.png", // 自定义标题背景图
     showPagination: false,
     columns: [
       { key: "stationName", label: "收费站名称", width: "130px", align: "center" },

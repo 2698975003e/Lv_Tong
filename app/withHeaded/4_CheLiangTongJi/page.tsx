@@ -134,6 +134,7 @@ export default function CheLiangTongJiPage() {
     ]
     
     const branchConfig = {
+      headerBgSrc: "/assets/Headers/header4_1.png", // 自定义标题背景图
       showPagination: false,
       columns: [
         { key: "companyName", label: "公司名称", width: "150px", align: "center" },
@@ -162,6 +163,7 @@ export default function CheLiangTongJiPage() {
     }))
     
     const stationConfig = {
+      headerBgSrc: "/assets/Headers/header4_2.png", // 自定义标题背景图
       showPagination: false,
       columns: [
         { key: "stationName", label: "收费站名称", width: "150px", align: "center" },

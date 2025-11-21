@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Fragment } from "react"
 import { cn } from "@/lib/utils"
 import { apiFetch } from "@/lib/api"
 
@@ -20,6 +20,10 @@ type CheckRecord = {
   reviewer: string
   fixItems: FixItem[]
   approvalNo?: string // 审批编号，用于获取详情
+  firstApproverName?: string
+  secondApproverName?: string
+  status?: number
+  statusDesc?: string
 }
 
 // 后端 API 返回的数据类型
@@ -43,6 +47,8 @@ interface ApiApprovalItem {
   checkTime: string
   modifyTime: string
   modifierName: string
+  firstApproverName?: string | null
+  secondApproverName?: string | null
 }
 
 interface ApiResponse {
@@ -121,6 +127,7 @@ const FIELD_MAPPING: Record<string, string> = {
   exit: "出口收费站",
   entryTime: "入口时间",
   exitTime: "出口时间",
+  enStationId: "入站编号",
   route: "通行路线",
   routeCode: "通行路线",
   tollSectionId: "路段编号",
@@ -135,6 +142,16 @@ const FIELD_MAPPING: Record<string, string> = {
   deleted: "删除状态",
   deleteReason: "删除原因说明",
   deleteOperator: "删除操作人",
+}
+
+type ModifyCountMap = Record<string, number | string>
+
+const MODIFY_COUNT_LABELS: Record<string, string> = {
+  basic_info: "基础信息修改次数",
+  transit_info: "通行信息修改次数",
+  check_result: "查验结果修改次数",
+  delete_record: "删除记录修改次数",
+  total: "累计修改次数",
 }
 
 // 格式化时间字符串
@@ -185,6 +202,16 @@ function parseModifyValues(oldValue: string, newValue: string): FixItem[] {
   }
 }
 
+function parseInspectionModifyCount(countStr?: string | null): ModifyCountMap | null {
+  if (!countStr) return null
+  try {
+    const parsed = JSON.parse(countStr)
+    return typeof parsed === "object" && parsed !== null ? (parsed as ModifyCountMap) : null
+  } catch {
+    return null
+  }
+}
+
 // 将后端数据转换为表格数据格式
 function convertApiDataToTableData(apiData: ApiApprovalItem[]): CheckRecord[] {
   return apiData.map((item, index) => {
@@ -200,6 +227,10 @@ function convertApiDataToTableData(apiData: ApiApprovalItem[]): CheckRecord[] {
       reviewer: "", // 审核人字段在后端数据中可能不存在，需要根据实际字段调整
       fixItems: fixItems.length > 0 ? fixItems : [{ name: item.modifyTypeDesc || "未知", oldContent: "", newContent: "" }],
       approvalNo: item.approvalNo, // 保存审批编号
+      firstApproverName: item.firstApproverName || undefined,
+      secondApproverName: item.secondApproverName || undefined,
+      status: item.status,
+      statusDesc: item.statusDesc,
     }
   })
 }
@@ -212,6 +243,9 @@ export default function NewCheckListPage() {
   const [approvalDetail, setApprovalDetail] = useState<ApprovalDetailResponse['data'] | null>(null)
   const [detailLoading, setDetailLoading] = useState<boolean>(false)
   const [detailError, setDetailError] = useState<string | null>(null)
+  const [approvalComment, setApprovalComment] = useState<string>("")
+  const [actionLoading, setActionLoading] = useState<boolean>(false)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   // 从后端获取数据
   useEffect(() => {
@@ -268,6 +302,8 @@ export default function NewCheckListPage() {
       }
 
       setApprovalDetail(result.data)
+      setApprovalComment("")
+      setActionMessage(null)
     } catch (err) {
       console.error('获取审批详情失败:', err)
       setDetailError(err instanceof Error ? err.message : '查询失败，请稍后重试')
@@ -280,6 +316,7 @@ export default function NewCheckListPage() {
   // 处理表格行点击
   const handleRowClick = (record: CheckRecord) => {
     setSelectedRecord(record)
+    setActionMessage(null)
     if (record.approvalNo) {
       fetchApprovalDetail(record.approvalNo)
     } else {
@@ -287,6 +324,70 @@ export default function NewCheckListPage() {
       setApprovalDetail(null)
     }
   }
+
+  // 处理审批操作
+  const handleApprovalAction = async (result: 1 | 2) => {
+    if (!approvalDetail?.approvalNo) {
+      setDetailError('请先选择需要审批的记录')
+      return
+    }
+    if (approvalDetail.status !== 1) {
+      setDetailError('当前状态不允许审批操作')
+      return
+    }
+
+    setActionLoading(true)
+    setActionMessage(null)
+    setDetailError(null)
+
+    try {
+      const response = await apiFetch('/api/api/approval/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approvalNo: approvalDetail.approvalNo,
+          result,
+          comment: approvalComment?.trim() || (result === 1 ? '审核通过' : '审核拒绝'),
+        }),
+      })
+
+      const resultData = await response.json()
+
+      if (!response.ok || resultData.code !== 200) {
+        throw new Error(resultData.message || '审批失败')
+      }
+
+      setActionMessage(resultData.message || (result === 1 ? '审批通过' : '审批拒绝'))
+      await fetchApprovalDetail(approvalDetail.approvalNo)
+    } catch (err) {
+      console.error('审批操作失败:', err)
+      setDetailError(err instanceof Error ? err.message : '审批失败，请稍后重试')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const formatJsonDisplay = (value?: string | null) => {
+    if (!value) return "-"
+    try {
+      return JSON.stringify(JSON.parse(value), null, 2)
+    } catch {
+      return value
+    }
+  }
+
+  const detailFixItems = approvalDetail
+    ? parseModifyValues(approvalDetail.oldValue || "{}", approvalDetail.newValue || "{}")
+    : []
+
+  const inspectionModifyCount = approvalDetail
+    ? parseInspectionModifyCount(approvalDetail.inspectionModifyCount)
+    : null
+
+  const canApprove = approvalDetail?.status === 1
+  const approvalStatusText = approvalDetail?.statusName || selectedRecord?.statusDesc || "状态未知"
 
   return (
     <div className="h-[calc(100vh-100px)] bg-slate-900 p-4 flex flex-col">
@@ -340,7 +441,8 @@ export default function NewCheckListPage() {
                     <th className="border border-[#003A7A] bg-[#091226] px-2 py-1.5 text-center text-[12px] font-medium text-white w-[180px]">修改时间</th>
                     <th className="border border-[#003A7A] bg-[#091226] px-2 py-1.5 text-center text-[12px] font-medium text-white w-[120px]">修改人</th>
                     <th className="border border-[#003A7A] bg-[#091226] px-2 py-1.5 text-center text-[12px] font-medium text-white w-[220px]">详情</th>
-                    <th className="border border-[#003A7A] bg-[#091226] px-2 py-1.5 text-center text-[12px] font-medium text-white w-[120px]">审核人</th>
+                    <th className="border border-[#003A7A] bg-[#091226] px-2 py-1.5 text-center text-[12px] font-medium text-white w-[120px]">一级审核员</th>
+                    <th className="border border-[#003A7A] bg-[#091226] px-2 py-1.5 text-center text-[12px] font-medium text-white w-[120px]">二级审核员</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -369,7 +471,7 @@ export default function NewCheckListPage() {
                     records.map((rec, recIdx) => {
                       const span = Math.max(1, rec.fixItems.length)
                       return (
-                        <>
+                        <Fragment key={rec.id}>
                           {rec.fixItems.map((fix, idx) => {
                             return (
                               <tr
@@ -412,13 +514,13 @@ export default function NewCheckListPage() {
                                   {fix.name}
                                 </td>
                                 <td 
-                                  className="border border-[#003A7A] px-2 py-1.5 text-left text-[12px] text-white"
+                                  className="border border-[#003A7A] px-2 py-1.5 text-center text-[12px] text-white"
                                   style={{ backgroundColor: recIdx % 2 === 1 ? "#08152C" : "#101F48" }}
                                 >
                                   {fix.oldContent}
                                 </td>
                                 <td 
-                                  className="border border-[#003A7A] px-2 py-1.5 text-left text-[12px] text-white"
+                                  className="border border-[#003A7A] px-2 py-1.5 text-center text-[12px] text-white"
                                   style={{ backgroundColor: recIdx % 2 === 1 ? "#08152C" : "#101F48" }}
                                 >
                                   {fix.newContent}
@@ -440,7 +542,7 @@ export default function NewCheckListPage() {
                                       {rec.modifier}
                                     </td>
                                     <td 
-                                      className="border border-[#003A7A] px-2 py-1.5 text-left text-[12px] text-white align-middle" 
+                                      className="border border-[#003A7A] px-2 py-1.5 text-center text-[12px] text-white align-middle" 
                                       rowSpan={span}
                                       style={{ backgroundColor: recIdx % 2 === 1 ? "#08152C" : "#101F48" }}
                                     >
@@ -451,14 +553,21 @@ export default function NewCheckListPage() {
                                       rowSpan={span}
                                       style={{ backgroundColor: recIdx % 2 === 1 ? "#08152C" : "#101F48" }}
                                     >
-                                      {rec.reviewer}
+                                      {rec.firstApproverName || "暂无"}
+                                    </td>
+                                    <td 
+                                      className="border border-[#003A7A] px-2 py-1.5 text-center text-[12px] text-white align-middle" 
+                                      rowSpan={span}
+                                      style={{ backgroundColor: recIdx % 2 === 1 ? "#08152C" : "#101F48" }}
+                                    >
+                                      {rec.secondApproverName || "暂无"}
                                     </td>
                                   </>
                                 )}
                               </tr>
                             )
                           })}
-                        </>
+                        </Fragment>
                       )
                     })
                   )}
@@ -484,21 +593,25 @@ export default function NewCheckListPage() {
           ) : !approvalDetail ? (
             <div className="text-slate-400 text-sm py-4">请点击表格行查看详情</div>
           ) : (
-            <div className="space-y-3 text-sm">
-              {/* 基本信息 */}
+            <div className="space-y-4 text-sm">
               <div className="space-y-2">
-                <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">基本信息</div>
+                <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">基础信息</div>
                 <div className="grid grid-cols-2 gap-2 text-slate-200">
                   <div><span className="text-slate-400">审批编号：</span>{approvalDetail.approvalNo}</div>
-                  <div><span className="text-slate-400">修改类型：</span>{approvalDetail.modifyTypeName}</div>
-                  <div><span className="text-slate-400">查验ID：</span>{approvalDetail.inspectionId}</div>
-                  <div><span className="text-slate-400">目标表：</span>{approvalDetail.targetTable}</div>
-                  <div><span className="text-slate-400">状态：</span>{approvalDetail.statusName}</div>
                   <div><span className="text-slate-400">审批级别：</span>{approvalDetail.approvalLevel}</div>
+                  <div><span className="text-slate-400">状态：</span>{approvalDetail.statusName}</div>
+                  <div><span className="text-slate-400">当前级别：</span>{approvalDetail.currentApprovalLevel ?? "-"}</div>
+                  <div><span className="text-slate-400">目标表：</span>{approvalDetail.targetTable}</div>
+                  <div><span className="text-slate-400">目标记录ID：</span>{approvalDetail.targetRecordId || "-"}</div>
+                  <div><span className="text-slate-400">查验ID：</span>{approvalDetail.inspectionId}</div>
+                  <div><span className="text-slate-400">目标查验编号：</span>{approvalDetail.targetCheckId || "-"}</div>
+                  <div><span className="text-slate-400">修改类型：</span>{approvalDetail.modifyTypeName}</div>
+                  <div><span className="text-slate-400">创建时间：</span>{formatDateTime(approvalDetail.createdAt)}</div>
+                  <div><span className="text-slate-400">更新时间：</span>{formatDateTime(approvalDetail.updatedAt)}</div>
+                  <div><span className="text-slate-400">是否需要审批：</span>{approvalDetail.needApproval === 1 ? "是" : "否"}</div>
                 </div>
               </div>
 
-              {/* 申请信息 */}
               <div className="space-y-2">
                 <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">申请信息</div>
                 <div className="grid grid-cols-2 gap-2 text-slate-200">
@@ -508,76 +621,135 @@ export default function NewCheckListPage() {
                 </div>
               </div>
 
-              {/* 一级审批 */}
-              {approvalDetail.firstApproverName && (
+              {inspectionModifyCount && (
                 <div className="space-y-2">
-                  <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">一级审批</div>
+                  <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">修改统计</div>
                   <div className="grid grid-cols-2 gap-2 text-slate-200">
-                    <div><span className="text-slate-400">审批人：</span>{approvalDetail.firstApproverName}</div>
-                    <div><span className="text-slate-400">审批时间：</span>{approvalDetail.firstApprovalTime ? formatDateTime(approvalDetail.firstApprovalTime) : "-"}</div>
-                    <div><span className="text-slate-400">审批结果：</span>
-                      {approvalDetail.firstApprovalResult === 1 ? "通过" : approvalDetail.firstApprovalResult === 0 ? "不通过" : "-"}
-                    </div>
-                    <div className="col-span-2"><span className="text-slate-400">审批意见：</span>{approvalDetail.firstApprovalComment || "-"}</div>
+                    {Object.entries(inspectionModifyCount).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="text-slate-400">{MODIFY_COUNT_LABELS[key] || key}：</span>
+                        {value}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {/* 二级审批 */}
-              {approvalDetail.secondApproverName && (
-                <div className="space-y-2">
-                  <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">二级审批</div>
-                  <div className="grid grid-cols-2 gap-2 text-slate-200">
-                    <div><span className="text-slate-400">审批人：</span>{approvalDetail.secondApproverName}</div>
-                    <div><span className="text-slate-400">审批时间：</span>{approvalDetail.secondApprovalTime ? formatDateTime(approvalDetail.secondApprovalTime) : "-"}</div>
-                    <div><span className="text-slate-400">审批结果：</span>
-                      {approvalDetail.secondApprovalResult === 1 ? "通过" : approvalDetail.secondApprovalResult === 0 ? "不通过" : "-"}
-                    </div>
-                    <div className="col-span-2"><span className="text-slate-400">审批意见：</span>{approvalDetail.secondApprovalComment || "-"}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* 修改内容对比 */}
               <div className="space-y-2">
-                <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">修改内容</div>
-                <div className="space-y-2 text-slate-200">
-                  <div>
-                    <div className="text-slate-400 mb-1">原值：</div>
-                    <div className="bg-slate-900/50 p-2 rounded text-xs break-all">
-                      {approvalDetail.oldValue ? JSON.stringify(JSON.parse(approvalDetail.oldValue), null, 2) : "-"}
+                <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">修改详情</div>
+                {detailFixItems.length > 0 ? (
+                  <div className="rounded border border-slate-600 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-900/60 text-slate-300">
+                        <tr>
+                          <th className="px-3 py-2 text-center font-medium">字段</th>
+                          <th className="px-3 py-2 text-center font-medium">原值</th>
+                          <th className="px-3 py-2 text-center font-medium">新值</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailFixItems.map((item, idx) => (
+                          <tr key={item.name + idx} className={idx % 2 === 0 ? "bg-slate-900/30" : "bg-slate-900/10"}>
+                            <td className="px-3 py-2 text-center text-slate-200">{item.name}</td>
+                            <td className="px-3 py-2 text-center text-slate-300 break-all">{item.oldContent || "-"}</td>
+                            <td className="px-3 py-2 text-center text-slate-300 break-all">{item.newContent || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900/40 rounded p-3 text-slate-300">
+                    暂无可展示的字段差异，原始数据如下：
+                    <div className="grid grid-cols-2 gap-3 mt-2 text-xs">
+                      <div>
+                        <div className="text-slate-400 mb-1">原值：</div>
+                        <div className="bg-slate-900/60 rounded p-2 whitespace-pre-wrap break-all">{formatJsonDisplay(approvalDetail.oldValue)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-400 mb-1">新值：</div>
+                        <div className="bg-slate-900/60 rounded p-2 whitespace-pre-wrap break-all">{formatJsonDisplay(approvalDetail.newValue)}</div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-slate-400 mb-1">新值：</div>
-                    <div className="bg-slate-900/50 p-2 rounded text-xs break-all">
-                      {approvalDetail.newValue ? JSON.stringify(JSON.parse(approvalDetail.newValue), null, 2) : "-"}
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-cyan-400 font-semibold border-b border-cyan-500/30 pb-1">审批进度</div>
+                <div className="space-y-3 text-slate-200">
+                  {approvalDetail.firstApproverName ? (
+                    <div className="bg-slate-900/40 rounded p-3 space-y-1">
+                      <div><span className="text-slate-400">一级审批人：</span>{approvalDetail.firstApproverName}</div>
+                      <div><span className="text-slate-400">审批时间：</span>{approvalDetail.firstApprovalTime ? formatDateTime(approvalDetail.firstApprovalTime) : "-"}</div>
+                      <div><span className="text-slate-400">审批结果：</span>{approvalDetail.firstApprovalResult === 1 ? "通过" : approvalDetail.firstApprovalResult === 0 ? "不通过" : "-"}</div>
+                      <div><span className="text-slate-400">审批意见：</span>{approvalDetail.firstApprovalComment || "-"}</div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-slate-900/30 rounded p-3 text-slate-400">一级审批信息暂未提供</div>
+                  )}
+
+                  {approvalDetail.secondApproverName ? (
+                    <div className="bg-slate-900/40 rounded p-3 space-y-1">
+                      <div><span className="text-slate-400">二级审批人：</span>{approvalDetail.secondApproverName}</div>
+                      <div><span className="text-slate-400">审批时间：</span>{approvalDetail.secondApprovalTime ? formatDateTime(approvalDetail.secondApprovalTime) : "-"}</div>
+                      <div><span className="text-slate-400">审批结果：</span>{approvalDetail.secondApprovalResult === 1 ? "通过" : approvalDetail.secondApprovalResult === 0 ? "不通过" : "-"}</div>
+                      <div><span className="text-slate-400">审批意见：</span>{approvalDetail.secondApprovalComment || "-"}</div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-900/30 rounded p-3 text-slate-400">二级审批待处理</div>
+                  )}
                 </div>
               </div>
 
-              {/* 操作按钮 */}
-              <div className="flex justify-end gap-4 pt-2 border-t border-slate-600">
-                <button 
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
-                  onClick={() => {
-                    // TODO: 实现通过审批逻辑
-                    alert('通过审批功能待实现')
-                  }}
-                >
-                  通过
-                </button>
-                <button 
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors"
-                  onClick={() => {
-                    // TODO: 实现不通过审批逻辑
-                    alert('不通过审批功能待实现')
-                  }}
-                >
-                  不通过
-                </button>
-              </div>
+              {canApprove ? (
+                <>
+                  <div className="space-y-2">
+                    <div className="text-slate-400">审批意见</div>
+                    <textarea
+                      value={approvalComment}
+                      onChange={(e) => setApprovalComment(e.target.value)}
+                      className="w-full bg-slate-900/60 border border-slate-600 rounded p-2 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/60 resize-none"
+                      rows={3}
+                      placeholder="请输入审批意见（可选）"
+                    />
+                  </div>
+
+                  {actionMessage && (
+                    <div className="text-green-400 text-sm bg-green-900/30 border border-green-500/40 rounded p-2">
+                      {actionMessage}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-4 pt-2 border-t border-slate-600">
+                    <button 
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-900/60 text-white rounded text-sm font-medium transition-colors"
+                      onClick={() => handleApprovalAction(1)}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? '处理中...' : '通过'}
+                    </button>
+                    <button 
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-900/60 text-white rounded text-sm font-medium transition-colors"
+                      onClick={() => handleApprovalAction(2)}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? '处理中...' : '不通过'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-slate-900/40 border border-slate-600 rounded p-3 text-slate-300">
+                    当前状态：<span className="text-cyan-300">{approvalStatusText}</span>，不可进行审批操作。
+                  </div>
+                  {actionMessage && (
+                    <div className="text-green-400 text-sm bg-green-900/30 border border-green-500/40 rounded p-2">
+                      {actionMessage}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -585,4 +757,6 @@ export default function NewCheckListPage() {
     </div>
   )
 }
+
+
 

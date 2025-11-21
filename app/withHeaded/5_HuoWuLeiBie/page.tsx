@@ -47,8 +47,9 @@ export default function HuoWuLeiBiePage() {
     intervalSize: "1000",
   })
 
-  const buildTableConfig = (title: string, rows: Array<{ id: string; name: string; count: number }>) => {
+  const buildTableConfig = (title: string, rows: Array<{ id: string; name: string; count: number }>, headerBgSrc?: string) => {
     return {
+      headerBgSrc: headerBgSrc, // 自定义标题背景图
       showPagination: false,
       columns: [
         { key: "id", label: "序号", width: "80px", align: "center" },
@@ -86,8 +87,8 @@ export default function HuoWuLeiBiePage() {
       count: x.vehicleCount,
     }))
 
-    setMinorConfig(buildTableConfig("货物名称", minor))
-    setMajorConfig(buildTableConfig("货物名称", major))
+    setMinorConfig(buildTableConfig("货物名称", minor, "/assets/Headers/header5_2.png"))
+    setMajorConfig(buildTableConfig("货物名称", major, "/assets/Headers/header5_1.png"))
   }
 
   const fetchData = async (override?: Partial<typeof queryParams>) => {

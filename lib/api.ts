@@ -1,10 +1,11 @@
 // API 工具函数 - 统一管理 token 和请求
 
-const API_BASE_URL = 'http://116.57.120.171:8081'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://116.57.120.171:8081'
 
 // Token 存储键名
 const TOKEN_KEY = 'auth_token'
 const USER_INFO_KEY = 'user_info'
+export const USER_INFO_UPDATED_EVENT = 'user-info-updated'
 
 // 登录响应数据类型
 export interface LoginResponse {
@@ -36,6 +37,7 @@ export const tokenManager = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(TOKEN_KEY, token)
       localStorage.setItem(USER_INFO_KEY, JSON.stringify({ ...userInfo, token }))
+      window.dispatchEvent(new Event(USER_INFO_UPDATED_EVENT))
     }
   },
 
@@ -67,6 +69,7 @@ export const tokenManager = {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_INFO_KEY)
+      window.dispatchEvent(new Event(USER_INFO_UPDATED_EVENT))
     }
   },
 
@@ -82,10 +85,11 @@ export async function apiFetch(
   options: RequestInit = {}
 ): Promise<Response> {
   const token = tokenManager.getToken()
-  
-  const headers: HeadersInit = {
+
+  // 使用普通对象来管理请求头，避免 HeadersInit 下标访问的类型问题
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> | undefined),
   }
 
   // 如果有 token，添加 Authorization header
@@ -93,10 +97,13 @@ export async function apiFetch(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await fetch(url.startsWith('http') ? url : `${API_BASE_URL}${url}`, {
-    ...options,
-    headers,
-  })
+  const response = await fetch(
+    url.startsWith('http') ? url : `${API_BASE_URL}${url}`,
+    {
+      ...options,
+      headers,
+    }
+  )
 
   // 如果 token 过期或无效，清除本地 token
   if (response.status === 401) {

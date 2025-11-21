@@ -344,7 +344,7 @@ export default function CheckPage() {
             }
 
             setQueryInfo({
-                managementOrg: "西海岸分公司", // 可以根据实际需求从API获取
+                managementOrg: station || "全部收费站",
                 startTime: formatDisplayTime(startTime),
                 endTime: formatDisplayTime(endTime),
                 currentTime: new Date().toLocaleString('zh-CN', {

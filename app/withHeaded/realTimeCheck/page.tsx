@@ -1,6 +1,6 @@
 "use client"
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import localFont from 'next/font/local'
 
@@ -19,7 +19,7 @@ const alibabaPuHuiTiM = localFont({
   display: 'swap'
 })
 
-export default function RealTimeCheckPage() {
+function RealTimeCheckContent() {
   // 获取 URL 查询参数
   const searchParams = useSearchParams()
   const inspectionId = searchParams.get('inspaectionId') // 注意：URL中的拼写
@@ -608,6 +608,14 @@ export default function RealTimeCheckPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RealTimeCheckPage() {
+  return (
+    <Suspense fallback={<div className="text-slate-300 p-4">页面加载中...</div>}>
+      <RealTimeCheckContent />
+    </Suspense>
   )
 }
 

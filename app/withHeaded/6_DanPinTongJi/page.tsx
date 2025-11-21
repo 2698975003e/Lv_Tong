@@ -456,9 +456,17 @@ export default function DanPinTongJiPage() {
           ) : (
             tableConfigs.map((config, index) => (
               <div key={index} className="bg-slate-800/50 border border-blue-500/30 rounded-lg p-4">
-                {/* 表格标题 */}
-                <div className="mb-3">
-                  <h3 className="text-lg font-semibold text-white">{config.title}</h3>
+                {/* 表格标题 - 使用 transform 将文字移动到 Title Header 区域 */}
+                <div className="mb-0">
+                  <h3 
+                    className="text-lg font-semibold text-white tracking-wide"
+                    style={{ 
+                      transform: 'translateY(30px) translateX(10px)',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    {config.title}
+                  </h3>
                 </div>
                 {/* 表格内容 */}
                 <TechDataTable config={config} className="h-auto" />

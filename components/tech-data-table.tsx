@@ -16,6 +16,7 @@ interface TableConfig {
   width?: string
   height?: string
   rowHeight?: string
+  bodyMaxHeight?: string
   columns: TableColumn[]
   data: TableRow[]
   showPagination?: boolean
@@ -132,6 +133,19 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
     height: finalConfig.rowHeight,
   }
 
+  const bodyStyle = {
+    maxHeight: !finalConfig.showPagination ? finalConfig.bodyMaxHeight || "500px" : undefined,
+  }
+
+  const bodyClassName = [
+    "divide-y",
+    "divide-slate-700/30",
+  ]
+
+  if (!finalConfig.showPagination) {
+    bodyClassName.push("overflow-y-auto", "custom-scrollbar")
+  }
+
   return (
     <div 
       className={`rounded-lg border border-slate-700/50 overflow-hidden ${className}`}
@@ -140,7 +154,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
       {/* Title Header */}
       <div className="h-9"     
       style={{
-      backgroundImage: 'url(/assets/TitleHeader.png)',
+      backgroundImage: `url(${finalConfig.headerBgSrc || "/assets/TitleHeader.png"})`,
       backgroundSize: 'contain',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat'
@@ -150,7 +164,7 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
       <div
         className="w-full h-12 flex items-center px-4 rounded-t-md"
         style={{
-          backgroundImage: `url(${finalConfig.headerBgSrc || "/assets/Table_Header.png"})`,
+          backgroundImage: "url(/assets/Table_Header.png)",
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
         }}
@@ -178,9 +192,8 @@ export function TechDataTable({ config, className = "" }: TechDataTableProps) {
 
       {/* Table Body - 根据showPagination决定是否使用滚动 */}
       <div 
-        className={`divide-y divide-slate-700/30 ${
-          !finalConfig.showPagination ? 'max-h-[500px] overflow-y-auto custom-scrollbar' : ''
-        }`}
+        className={bodyClassName.join(" ")}
+        style={bodyStyle}
       >
         {data.map((row, index) => (
           <div
